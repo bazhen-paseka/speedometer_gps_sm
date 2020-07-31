@@ -50,4 +50,7 @@
 **************************************************************************
 */
 
+void Speedometer_GPS_Init (void) ;
+void Speedometer_GPS_Main (void) ;
+
 #endif /* SPEEDOMETER_GPS_SM_H_ */

@@ -19,6 +19,11 @@
 */
 
 	#include "main.h"
+	#include "speedometer_gps_local_config.h"
+	#include <string.h>
+	#include <stdio.h>
+	#include "usart.h"
+	#include "tm1637_sm.h"
 	
 /*
 **************************************************************************
@@ -50,7 +55,10 @@
 **************************************************************************
 */
 
-void Speedometer_GPS_Init (void) ;
-void Speedometer_GPS_Main (void) ;
+	void Speedometer_GPS_Init (void) ;
+	void Speedometer_GPS_Main (void) ;
+
+	void Debug_print( char * _string ) ;
+	void Debug_init( UART_HandleTypeDef * _huart ) ;
 
 #endif /* SPEEDOMETER_GPS_SM_H_ */

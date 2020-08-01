@@ -24,7 +24,8 @@
 	#include <stdio.h>
 	#include "usart.h"
 	#include "tm1637_sm.h"
-	
+	#include "ringbuffer_dma.h"
+
 /*
 **************************************************************************
 *								    DEFINES                     

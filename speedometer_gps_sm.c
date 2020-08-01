@@ -23,6 +23,7 @@
 **************************************************************************
 */
 
+	#define RX_BUFFER_SIZE 			0xFF
 
 /*
 **************************************************************************
@@ -75,6 +76,15 @@ typedef struct	{
 	  };
 
 	 volatile uint8_t IRQ_flag = 0;
+
+		extern DMA_HandleTypeDef		hdma_usart2_rx ;
+		RingBuffer_DMA 			rx_buffer	= { 0 }	;
+		uint8_t		rx_circular_buffer[RX_BUFFER_SIZE] ;
+
+		char gps_string[RX_BUFFER_SIZE] = { 0 } ;
+		int gps_length_int = 0 ;
+		HAL_StatusTypeDef	status_res = {0} ;
+
 /*
 **************************************************************************
 *                        LOCAL FUNCTION PROTOTYPES
@@ -108,6 +118,18 @@ void Speedometer_GPS_Init (void) {
 	tm1637_Init(&h1_tm1637);
 	tm1637_Set_Brightness(&h1_tm1637, bright_45percent);
 	tm1637_Display_Decimal(&h1_tm1637, 8765, double_dot);
+
+	RingBuffer_DMA_Init (	&rx_buffer			,
+							&hdma_usart2_rx		,
+							rx_circular_buffer	,
+							RX_BUFFER_SIZE		) ;  	// Start UART receive
+
+	status_res = HAL_UART_Receive_DMA(&huart2, rx_circular_buffer, RX_BUFFER_SIZE ) ;  	// how many bytes in buffer
+	sprintf (	debugString						,
+				"UART_DMA status:%d\r\n"	,
+				(int)	status_res	 					) ;
+	Debug_print( debugString ) ;
+
 	HAL_Delay(1000);
 }
 //***************************************************************************
@@ -118,10 +140,34 @@ void Speedometer_GPS_Main (void) {
 
 	uint32_t speed_u32 = counter_u32++;
 
-	sprintf(debugString,"%04d\r\n", (int)speed_u32) ;
-	Debug_print( debugString ) ;
+//	sprintf(debugString,"%04d\r\n", (int)speed_u32) ;
+//	Debug_print( debugString ) ;
 
 	tm1637_Display_Decimal(&h1_tm1637, speed_u32, no_double_dot) ;
+
+	uint32_t 	rx_count = RingBuffer_DMA_Count ( &rx_buffer ) ;
+	sprintf(debugString,"RingBuffer_DMA_Count = %d\r\n", (int)rx_count) ;
+	Debug_print( debugString ) ;
+
+	while ( rx_count-- ) {
+		gps_string[gps_length_int] = RingBuffer_DMA_GetByte ( &rx_buffer ) ;
+		gps_length_int++ ;
+		if ( gps_length_int > 100 ) {
+			return ;
+		}
+	}
+
+	if ( rx_count > 2 ) {
+		for (int i=0; i<gps_length_int; i++ ) {
+			sprintf(debugString,"%c", gps_string[i]) ;
+			Debug_print( debugString ) ;
+		}
+		gps_length_int = 0;
+
+		sprintf(debugString,"\r\n") ;
+		Debug_print( debugString ) ;
+	}
+
 	HAL_Delay(1000);
 }
 //***************************************************************************

@@ -65,7 +65,7 @@ typedef struct	{
 
 	#define	DEBUG_STRING_SIZE		300
 
-	volatile uint32_t counter_u32 = 0;
+	volatile uint32_t counter_u32 = 9999;
 
 	 tm1637_struct h1_tm1637 =
 	  {
@@ -138,15 +138,10 @@ void Speedometer_GPS_Main (void) {
 	char debugString[DEBUG_STRING_SIZE] ;
 	HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin) ;
 
-	uint32_t speed_u32 = counter_u32++;
-
-//	sprintf(debugString,"%04d\r\n", (int)speed_u32) ;
-//	Debug_print( debugString ) ;
-
-	tm1637_Display_Decimal(&h1_tm1637, speed_u32, no_double_dot) ;
+	uint32_t speed_u32 = counter_u32;
 
 	uint32_t 	rx_count = RingBuffer_DMA_Count ( &rx_buffer ) ;
-	sprintf(debugString,"RingBuffer_DMA_Count = %d\r\n", (int)rx_count) ;
+	sprintf(debugString,"%d) RingBuffer_DMA_Count = %d\r\n", (int)counter_u32--, (int)rx_count) ;
 	Debug_print( debugString ) ;
 
 	while ( rx_count-- ) {
@@ -157,15 +152,47 @@ void Speedometer_GPS_Main (void) {
 		}
 	}
 
-	if ( rx_count > 2 ) {
+	if ( rx_count > 20 ) {
 		for (int i=0; i<gps_length_int; i++ ) {
 			sprintf(debugString,"%c", gps_string[i]) ;
 			Debug_print( debugString ) ;
 		}
-		gps_length_int = 0;
+
+
+		uint8_t 	previous_pole_position_u8 = 0 ;
+		uint8_t 	pole_u8 = 0;
+		char gps_data[15][15] ;
+		for (	int i=0 ; i < 15 ; i++ ) {
+			memset(	gps_data[i]	, 0 , 15	) ;
+		}
+
+		for (	int	i = 0; i < gps_length_int; i++) {
+			if ( gps_string[i] == ',' ) {
+				memcpy(	 &gps_data[pole_u8], &gps_string[previous_pole_position_u8] , ( i - previous_pole_position_u8) ) ;
+				sprintf(debugString,"%d) %s\r\n",(int)pole_u8, gps_data[pole_u8]) ;
+				Debug_print( debugString ) ;
+				pole_u8++ ;
+				previous_pole_position_u8 = i + 1 ;
+
+			}
+		}
+
+		double speed_dbl	= atof( gps_data[7] ) ;
+
+		speed_u32 = (uint32_t)( speed_dbl * 1000.0 ) ;
+		sprintf(debugString,"Speed:%04d\r\n", (int)speed_u32) ;
+		Debug_print( debugString ) ;
 
 		sprintf(debugString,"\r\n") ;
 		Debug_print( debugString ) ;
+
+		if ( speed_u32 == 0 ) {
+			tm1637_Display_Decimal(&h1_tm1637, counter_u32, double_dot) ;
+		} else {
+			tm1637_Display_Decimal(&h1_tm1637, speed_u32, no_double_dot) ;
+		}
+
+		gps_length_int = 0;
 	}
 
 	HAL_Delay(1000);

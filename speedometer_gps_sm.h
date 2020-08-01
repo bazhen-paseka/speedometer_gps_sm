@@ -25,6 +25,8 @@
 	#include "usart.h"
 	#include "tm1637_sm.h"
 	#include "ringbuffer_dma.h"
+	//#include <math.h>
+	#include <stdlib.h>
 
 /*
 **************************************************************************
